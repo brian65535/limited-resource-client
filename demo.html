@@ -182,7 +182,7 @@
         var point = [ .0+item.lat, .0+item.lon ];
         var content = L.popup().setContent(getPopupContent(item));
 
-        console.log("Put marker", point, item);
+        //console.log("Put marker", point, item);
         return L.marker(point, {
           icon: icon,
           draggable: false
@@ -190,6 +190,7 @@
       }
 
       function fetch(location, mapContainer) {
+        console.log("Center at ", location, MAP._lastCenter);
         $.getJSON(URL_FETCH,{lat: location[0], lon: location[1]}, function(data, status){
           if(data && data.length) {
             data.forEach(
@@ -269,7 +270,8 @@
         });
       }
       function mapOnDragEnd(event) {
-        console.log('mapOnDragEnd', event);
+        var center = MAP.getCenter();
+        fetch([center.lat, center.lng], MAP);
       }
 
       function fetch_around(latlong) {
@@ -295,7 +297,7 @@
           var latlong = [loc.coords.latitude, loc.coords.longitude];
           fetch_around(latlong);
           MAP.on('click', mapOnClick);
-          MAP.on('dragend', mapOnDragEnd);
+          MAP.on('moveend', mapOnDragEnd);
           MAP.addControl(L.mapquest.locatorControl());
         }, null, options);
       }
