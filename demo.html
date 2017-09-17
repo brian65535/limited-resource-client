@@ -1,5 +1,6 @@
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.1.0/mapquest.js"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"
             integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
@@ -10,13 +11,18 @@
     </style>
 
     <script>
-
+      var TYPES = ["Resources","Event", "Hazard", "Talk"];
       var ICONS = {
         resources: L.mapquest.icons.marker({primaryColor:'#00CC00', secondaryColor: '#E6FFE6'}),
         event: L.mapquest.icons.circle({primaryColor:'#CCF2FF', secondaryColor: '#33CCFF'}),
         hazard: L.mapquest.icons.incident(),
         talk: L.mapquest.icons.flag({primaryColor:'#22407F', secondaryColor: '#3B5998'})
       };
+      var URL_FETCH = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch";
+      var URL_CREATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/create";
+      var URL_UPDATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/update";
+      var MAP;
+      var PIN_CREATE;
 
       function rnd(length) {
         return Math.floor( Math.random() * length);
@@ -25,8 +31,11 @@
         return '<span class="name">' + data.name + '</span>'
                 + '<span class="type">(' +  data.type + ')</span><br>'
                 + '<span class="fresh">Freshness: ' + data.freshness + '/5</span><br>'
-                + '<span class="rate">Rating: ' +  data.rating + '/5</span><br>'
-                + '<form><button name="upvote">Upvote</button><button name="downvote">Downvote</button></form>'
+                + '<span class="rate">Rating: ' + data.rating + '/5</span><br>'
+                + '<form method="POST" action="'+ URL_UPDATE + '">'
+                +   '<button name="upvote">Upvote</button>'
+                +   '<button name="downvote">Downvote</button>'
+                + '</form>'
                 + '<div class="discussion">'
                 + '</div>'
 
@@ -36,7 +45,7 @@
         var x = Math.floor(10000*(center[0] + rnd(size*10000)/10000 - size/2))/10000;
         var y = Math.floor(10000*(center[1] + rnd(size*10000)/10000 - size/2))/10000;
         var type_idx = rnd(4);
-        var type = ["Resources","Event", "Hazard", "Talk"][ type_idx ];
+        var type = TYPES[ type_idx ];
         return generateMarker({
           name: "Landmark #" + id,
           type: type,
@@ -75,7 +84,7 @@
       }
 
       function fetch(location, mapContainer) {
-        $.getJSON("http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch",{}, function(data, status){
+        $.getJSON(URL_FETCH,{}, function(data, status){
           if(data && data.length) {
             data.forEach(
               function(d) {
@@ -85,6 +94,71 @@
             );
           }
         })
+      }
+
+
+      function createPopupContent(latlng, location, mapContainer) {
+
+        var street = location.street;
+        var city = location.adminArea5;
+        var state = location.adminArea3;
+
+        var types = '<select name="create_type">' 
+                  + TYPES.map(function(d) {
+                      return '<option>' + d + '</option>'
+                    }).join()
+                  + '</select>';
+        var content = ''
+                + '<input name="create_name"/>'
+                + types 
+                + '<input name="create_description"/>'
+                + '<button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')"/>';
+        content = street + ', ' + city + ', ' + state + "<br>" + content;
+
+        if(!PIN_CREATE){
+          PIN_CREATE = L.popup();
+        }
+        PIN_CREATE.setContent(content).setLatLng(latlng).openOn(mapContainer);
+      }
+
+      function createPin(lat, lon) {
+        console.log("CREATE PIN!!!", lat,lon);
+        var obj = this;
+        var name = document.querySelector('[name="create_name"]').value;
+        var description = document.querySelector('[name="create_description"]').value;
+        var type = document.querySelector('[name="create_type"]').value;
+        var data = JSON.stringify({name: name, desc: description, type: type, lat: lat, lon: lon});
+        $.ajax({
+          type: 'POST',
+          url: URL_CREATE,
+          data: data,
+          dataType: "json",
+          contentType: "application/json",
+          success: function(response) {
+            console.log("CreatePin response: ", response);
+            PIN_CREATE._close();
+            if(response) {
+              var x = generateMarker(response);
+              x.addTo(MAP);
+            }
+          }
+        });
+        return false;
+      }
+
+      function mapOnClick(event) {
+        var mapContainer = this;
+        L.mapquest.geocoding().reverse(event.latlng, function(error, response) {
+
+          if(!response || !response.results || !response.results[0] || !response.results[0].locations) {
+            return;
+          }
+
+          var result = response.results[0];
+          var location = result.locations[0];
+          var latlng = result.providedLocation.latLng;
+          createPopupContent(latlng, location, mapContainer);
+        });
       }
 
       window.onload = function() {
@@ -103,13 +177,14 @@
             layers: L.mapquest.tileLayer('map'),
             zoom: 15
           });
+          MAP = map;
           fetch(loc, map);
+          map.on('click', mapOnClick);
 
-          map.addControl(L.mapquest.control());
           map.addControl(L.mapquest.locatorControl());
         }, null, options);
-
       }
+
     </script>
   </head>
 
