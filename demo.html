@@ -7,6 +7,52 @@
             crossorigin="anonymous"></script>
     <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.1.0/mapquest.css"/>
     <style type="text/css">
+      .leaflet-popup-content {
+        min-width: 200px;
+      }
+      .leaflet-popup-content .name {
+        font-weight: 700;
+      }
+      .leaflet-popup-content .type {
+        display: none;
+      }
+      .leaflet-popup-content .fresh {
+
+      }
+      .leaflet-popup-content .rate  {
+        color: #888;
+      }
+      .leaflet-popup-content .rate button {
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 24px;
+        height: 24px;
+        width: 24px;
+      }
+      .leaflet-popup-content .rate > span {
+        padding: 5px;
+        border: 1px solid #AAA;
+        border-radius: 5px;
+      }
+      .leaflet-popup-content .freshness {
+        width: 24px;
+        height: 24px;
+      }
+      .leaflet-popup-content .freshness img {
+        width: 24px;
+        height: 24px;
+      }
+      .leaflet-popup-content .fresh {
+        width: 24px;
+        height: 24px;
+        background-image: url("./milk_bottle.png");
+      }
+      .leaflet-popup-content .rotten {
+        width: 24px;
+        height: 24px;
+        background-image: url("./cheese.png");
+      }
+
       
     </style>
 
@@ -27,15 +73,37 @@
       function rnd(length) {
         return Math.floor( Math.random() * length);
       }
+      function vote(vote, id) {
+        var data = JSON.stringify({id: id, vote: vote});
+        console.log("Vote ", vote, id, data);
+        $.ajax({
+          type: 'POST',
+          url: URL_UPDATE,
+          data: data,
+          dataType: "json",
+          contentType: "application/json",
+          success: function(response) {
+            console.log("UpdatePin response: ", response);
+          }
+        });
+      }
       function getPopupContent(data) {
+        var fr = data.freshness > 4 ? "fresh" : "rotten";
+        var fr_img = data.freshness > 4 ? "milk_bottle.png" : "cheese.png";
         return '<span class="name">' + data.name + '</span>'
                 + '<span class="type">(' +  data.type + ')</span><br>'
-                + '<span class="fresh">Freshness: ' + data.freshness + '/5</span><br>'
-                + '<span class="rate">Rating: ' + data.rating + '/5</span><br>'
-                + '<form method="POST" action="'+ URL_UPDATE + '">'
-                +   '<button name="upvote">Upvote</button>'
-                +   '<button name="downvote">Downvote</button>'
-                + '</form>'
+                + '<span class="freshness"><img src="./' + fr_img + '"/></span><br>'
+                + '<div class="rate">'
+                + '<span>'
+                +   '<button value="up" onclick="vote(\'up\', '+data.id+')"><svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="style-scope yt-icon" style="pointer-events: none; display: block; width: 100%; height: 100%;"><g class="style-scope yt-icon"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z" class="style-scope yt-icon"></path></g></svg></button>'
+                +   '<span class="up">' + data.up + '</span>'
+                + '</span>'
+                + '<span>'
+                +   '<button value="down" onclick="vote(\'down\', '+data.id+')"><svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="style-scope yt-icon" style="pointer-events: none; display: block; width: 100%; height: 100%;"><g class="style-scope yt-icon"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v1.91l.01.01L1 14c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" class="style-scope yt-icon"></path></g></svg></button>'
+                +   '<span class="down">' + data.down + '</span>'
+                + '</span>'
+                + '</div><br>'
+                + ( data.desc ? '<span name="desc">' + data.desc + '</span>' : '')
                 + '<div class="discussion">'
                 + '</div>'
 
@@ -84,7 +152,7 @@
       }
 
       function fetch(location, mapContainer) {
-        $.getJSON(URL_FETCH,{}, function(data, status){
+        $.getJSON(URL_FETCH,{lat: location[0], lon: location[1]}, function(data, status){
           if(data && data.length) {
             data.forEach(
               function(d) {
@@ -160,6 +228,20 @@
           createPopupContent(latlng, location, mapContainer);
         });
       }
+      function mapOnDragEnd(event) {
+        console.log('mapOnDragEnd', event);
+      }
+
+      function fetch_around(latlong) {
+          console.log("Center at " + latlong);
+          var map = L.mapquest.map('map', {
+            center: latlong,
+            layers: L.mapquest.tileLayer('map'),
+            zoom: 15
+          });
+          MAP = map;
+          fetch(latlong, map);
+      }
 
       window.onload = function() {
         L.mapquest.key = ''; // PUT APP KEY HERE
@@ -171,16 +253,9 @@
         };
         navigator.geolocation.getCurrentPosition(function(loc) {
           var latlong = [loc.coords.latitude, loc.coords.longitude];
-          console.log("Center at " + latlong);
-          var map = L.mapquest.map('map', {
-            center: latlong,
-            layers: L.mapquest.tileLayer('map'),
-            zoom: 15
-          });
-          MAP = map;
-          fetch(loc, map);
+          fetch_around(latlong);
           map.on('click', mapOnClick);
-
+          map.on('dragend', mapOnDragEnd);
           map.addControl(L.mapquest.locatorControl());
         }, null, options);
       }
