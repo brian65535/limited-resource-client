@@ -7,6 +7,80 @@
             crossorigin="anonymous"></script>
     <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.1.0/mapquest.css"/>
     <style type="text/css">
+      .leaflet-popup-content {
+        min-width: 200px;
+      }
+      .leaflet-popup-content label {
+        width: 5em;
+        margin-right: 10px;
+        text-align: right;
+        display: inline-block;
+      }
+      .leaflet-popup-content input {
+        display: inline-block;
+        padding: .5em .6em;
+        display: inline-block;
+        border: 1px solid #ccc;
+        box-shadow: inset 0 1px 3px #ddd;
+        border-radius: 4px;
+        vertical-align: middle;
+        box-sizing: border-box;
+      }
+      .leaflet-popup-content .name {
+        font-weight: 700;
+      }
+      .leaflet-popup-content .type {
+        display: none;
+      }
+      .leaflet-popup-content .fresh {
+
+      }
+      .leaflet-popup-content .rate  {
+        color: #888;
+      }
+      .leaflet-popup-content .rate button {
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 24px;
+        height: 24px;
+        width: 24px;
+      }
+      .leaflet-popup-content .rate > span {
+        padding: 5px;
+        border: 1px solid #AAA;
+        border-radius: 5px;
+      }
+      .leaflet-popup-content .freshness {
+        float: right;
+        width: 24px;
+        height: 24px;
+      }
+      .leaflet-popup-content .freshness img {
+        width: 24px;
+        height: 24px;
+      }
+      .leaflet-popup-content .fresh {
+        width: 24px;
+        height: 24px;
+        background-image: url("./milk_bottle.png");
+      }
+      .leaflet-popup-content .rotten {
+        width: 24px;
+        height: 24px;
+        background-image: url("./cheese.png");
+      }
+      .leaflet-popup-content button[type="submit"]  {
+        border-radius: 2px;
+        padding: .5em 1em;
+        color: #fff;
+        background-color: #0078e7;
+        border: transparent;
+        margin-top: 10px;
+      }
+      .leaflet-popup-content .rt {
+        text-align: right;
+      }
+
       
     </style>
 
@@ -14,28 +88,52 @@
       var TYPES = ["Resources","Event", "Hazard", "Talk"];
       var ICONS = {
         resources: L.mapquest.icons.marker({primaryColor:'#00CC00', secondaryColor: '#E6FFE6'}),
-        event: L.mapquest.icons.circle({primaryColor:'#CCF2FF', secondaryColor: '#33CCFF'}),
+        resources_old: L.mapquest.icons.marker({primaryColor:'#88CC88', secondaryColor: '#D6DED6'}),
+        event: L.mapquest.icons.circle({primaryColor:'#CCF2FF', secondaryColor: '#6699CC'}),
+        event_old: L.mapquest.icons.circle({primaryColor:'#AAE2DD', secondaryColor: '#55CCFF'}),
         hazard: L.mapquest.icons.incident(),
         talk: L.mapquest.icons.flag({primaryColor:'#22407F', secondaryColor: '#3B5998'})
       };
-      var URL_FETCH = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch";
-      var URL_CREATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/create";
-      var URL_UPDATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/update";
+      var URL_FETCH = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch";
+      var URL_CREATE = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/create";
+      var URL_UPDATE = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/update";
       var MAP;
       var PIN_CREATE;
 
       function rnd(length) {
         return Math.floor( Math.random() * length);
       }
+      function vote(vote, id) {
+        var data = JSON.stringify({id: id, vote: vote});
+        console.log("Vote ", vote, id, data);
+        $.ajax({
+          type: 'POST',
+          url: URL_UPDATE,
+          data: data,
+          dataType: "json",
+          contentType: "application/json",
+          success: function(response) {
+            console.log("UpdatePin response: ", response);
+          }
+        });
+      }
       function getPopupContent(data) {
+        var fr = data.freshness > 4 ? "fresh" : "rotten";
+        var fr_img = data.freshness > 4 ? "milk_bottle.png" : "cheese.png";
         return '<span class="name">' + data.name + '</span>'
                 + '<span class="type">(' +  data.type + ')</span><br>'
-                + '<span class="fresh">Freshness: ' + data.freshness + '/5</span><br>'
-                + '<span class="rate">Rating: ' + data.rating + '/5</span><br>'
-                + '<form method="POST" action="'+ URL_UPDATE + '">'
-                +   '<button name="upvote">Upvote</button>'
-                +   '<button name="downvote">Downvote</button>'
-                + '</form>'
+                + '<span class="freshness"><img src="./' + fr_img + '"/></span><br>'
+                + '<div class="rate">'
+                + '<span>'
+                +   '<button value="up" onclick="vote(\'up\', '+data.id+')"><svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="style-scope yt-icon" style="pointer-events: none; display: block; width: 100%; height: 100%;"><g class="style-scope yt-icon"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-1.91l-.01-.01L23 10z" class="style-scope yt-icon"></path></g></svg></button>'
+                +   '<span class="up">' + data.up + '</span>'
+                + '</span>'
+                + '<span>'
+                +   '<button value="down" onclick="vote(\'down\', '+data.id+')"><svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" focusable="false" class="style-scope yt-icon" style="pointer-events: none; display: block; width: 100%; height: 100%;"><g class="style-scope yt-icon"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v1.91l.01.01L1 14c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z" class="style-scope yt-icon"></path></g></svg></button>'
+                +   '<span class="down">' + data.down + '</span>'
+                + '</span>'
+                + '</div><br>'
+                + ( data.desc ? '<span name="desc">' + data.desc + '</span>' : '')
                 + '<div class="discussion">'
                 + '</div>'
 
@@ -60,10 +158,18 @@
         var icon = ICONS.resources;
         switch(item.type.toLowerCase()) {
           case "resources":
-            icon = ICONS.resources;
+            if(item.freshness > 4) {
+              icon = ICONS.resources;
+            }else{
+              icon = ICONS.resources_old;
+            }
             break;
           case "event":
-            icon = ICONS.event;
+            if(item.freshness > 4) {
+              icon = ICONS.event;
+            }else{
+              icon = ICONS.event_old;
+            }
             break;
           case "hazard":
             icon = ICONS.hazard;
@@ -76,7 +182,7 @@
         var point = [ .0+item.lat, .0+item.lon ];
         var content = L.popup().setContent(getPopupContent(item));
 
-        console.log("Put marker", point, item);
+        //console.log("Put marker", point, item);
         return L.marker(point, {
           icon: icon,
           draggable: false
@@ -84,7 +190,8 @@
       }
 
       function fetch(location, mapContainer) {
-        $.getJSON(URL_FETCH,{}, function(data, status){
+        console.log("Center at ", location, MAP._lastCenter);
+        $.getJSON(URL_FETCH,{lat: location[0], lon: location[1]}, function(data, status){
           if(data && data.length) {
             data.forEach(
               function(d) {
@@ -109,10 +216,12 @@
                     }).join()
                   + '</select>';
         var content = ''
-                + '<input name="create_name"/>'
+                + '<div><label>Title</label><input name="create_name" placeholder="What\'s this?"/></div>'
+                + '<div><label>Type</label>'
                 + types 
-                + '<input name="create_description"/>'
-                + '<button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')"/>';
+                + '</div>'
+                + '<div><label>Content</label><input name="create_description" placeholder="... add description"/></div>'
+                + '<div class="rt"><button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')">Submit</button></div>';
         content = street + ', ' + city + ', ' + state + "<br>" + content;
 
         if(!PIN_CREATE){
@@ -160,9 +269,24 @@
           createPopupContent(latlng, location, mapContainer);
         });
       }
+      function mapOnDragEnd(event) {
+        var center = MAP.getCenter();
+        fetch([center.lat, center.lng], MAP);
+      }
+
+      function fetch_around(latlong) {
+          console.log("Center at " + latlong);
+          var map = L.mapquest.map('map', {
+            center: latlong,
+            layers: L.mapquest.tileLayer('map'),
+            zoom: 15
+          });
+          MAP = map;
+          fetch(latlong, map);
+      }
 
       window.onload = function() {
-        L.mapquest.key = ''; // PUT APP KEY HERE
+        L.mapquest.key = 'KA47zrbFJwhmkuLHIuzJhcfD2CBp8wpQ'; // PUT APP KEY HERE
 
         var options = {
           enableHighAccuracy: true,
@@ -171,17 +295,10 @@
         };
         navigator.geolocation.getCurrentPosition(function(loc) {
           var latlong = [loc.coords.latitude, loc.coords.longitude];
-          console.log("Center at " + latlong);
-          var map = L.mapquest.map('map', {
-            center: latlong,
-            layers: L.mapquest.tileLayer('map'),
-            zoom: 15
-          });
-          MAP = map;
-          fetch(loc, map);
-          map.on('click', mapOnClick);
-
-          map.addControl(L.mapquest.locatorControl());
+          fetch_around(latlong);
+          MAP.on('click', mapOnClick);
+          MAP.on('moveend', mapOnDragEnd);
+          MAP.addControl(L.mapquest.locatorControl());
         }, null, options);
       }
 
