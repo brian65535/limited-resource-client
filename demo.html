@@ -64,9 +64,9 @@
         hazard: L.mapquest.icons.incident(),
         talk: L.mapquest.icons.flag({primaryColor:'#22407F', secondaryColor: '#3B5998'})
       };
-      var URL_FETCH = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch";
-      var URL_CREATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/create";
-      var URL_UPDATE = "http://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/update";
+      var URL_FETCH = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/fetch";
+      var URL_CREATE = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/create";
+      var URL_UPDATE = "https://ec2-34-214-168-135.us-west-2.compute.amazonaws.com:4080/update";
       var MAP;
       var PIN_CREATE;
 
@@ -244,7 +244,7 @@
       }
 
       window.onload = function() {
-        L.mapquest.key = ''; // PUT APP KEY HERE
+        L.mapquest.key = 'KA47zrbFJwhmkuLHIuzJhcfD2CBp8wpQ'; // PUT APP KEY HERE
 
         var options = {
           enableHighAccuracy: true,
@@ -254,9 +254,9 @@
         navigator.geolocation.getCurrentPosition(function(loc) {
           var latlong = [loc.coords.latitude, loc.coords.longitude];
           fetch_around(latlong);
-          map.on('click', mapOnClick);
-          map.on('dragend', mapOnDragEnd);
-          map.addControl(L.mapquest.locatorControl());
+          MAP.on('click', mapOnClick);
+          MAP.on('dragend', mapOnDragEnd);
+          MAP.addControl(L.mapquest.locatorControl());
         }, null, options);
       }
 
