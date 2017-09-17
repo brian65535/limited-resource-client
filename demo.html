@@ -69,6 +69,17 @@
         height: 24px;
         background-image: url("./cheese.png");
       }
+      .leaflet-popup-content button[type="submit"]  {
+        border-radius: 2px;
+        padding: .5em 1em;
+        color: #fff;
+        background-color: #0078e7;
+        border: transparent;
+        margin-top: 10px;
+      }
+      .leaflet-popup-content .rt {
+        text-align: right;
+      }
 
       
     </style>
@@ -209,7 +220,7 @@
                 + types 
                 + '</div>'
                 + '<div><label>Content</label><input name="create_description" placeholder="... add description"/></div>'
-                + '<div><button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')"/></div>';
+                + '<div class="rt"><button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')">Submit</button></div>';
         content = street + ', ' + city + ', ' + state + "<br>" + content;
 
         if(!PIN_CREATE){
