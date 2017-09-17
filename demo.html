@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.1.0/mapquest.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.1.0/mapquest.css"/>
+    <style type="text/css">
+      
+    </style>
+
+    <script>
+      function rnd(length) {
+        return Math.floor( Math.random() * length);
+      }
+      function getPopupContent(data) {
+        var freshness = rnd(5);
+        var rating = rnd(5);
+        return '<span class="name">' + data.name + '</span>'
+                + '<span class="type">(' +  data.type + ')</span><br>'
+                + '<span class="fresh">Freshness: ' + freshness + '/5</span><br>'
+                + '<span class="rate">Rating: ' +  rating + '/5</span><br>'
+                + '<form><button name="upvote">Upvote</button><button name="downvote">Downvote</button></form>'
+                + '<div class="discussion">'
+                + '</div>'
+
+      }
+
+      function generateRandomMarker(center, size, id) {
+        var x = Math.floor(10000*(center[0] + rnd(size*10000)/10000 - size/2))/10000;
+        var y = Math.floor(10000*(center[1] + rnd(size*10000)/10000 - size/2))/10000;
+        var type_idx = rnd(4);
+        var type = ["Resources","Event", "Hazard", "Talk"][ type_idx ];
+        var icon = [
+          L.mapquest.icons.marker({primaryColor:'#00CC00', secondaryColor: '#E6FFE6'}),
+          L.mapquest.icons.circle({primaryColor:'#CCF2FF', secondaryColor: '#33CCFF'}),
+          L.mapquest.icons.incident(),
+          L.mapquest.icons.flag({primaryColor:'#22407F', secondaryColor: '#3B5998'})
+          ][ type_idx ];
+        var content = L.popup().setContent(getPopupContent({
+          name: "Landmark #" + id,
+          type: type
+        }));
+        console.log("Random marker at " + x + ", " + y + " while center: " + center);
+        return L.marker([x, y], {
+          icon: icon,
+          draggable: false
+        }).bindPopup(content);
+      }
+
+      window.onload = function() {
+        L.mapquest.key = ''; # PUT APP KEY HERE
+
+        var latlong = [39.7392, -104.9903];
+
+        var map = L.mapquest.map('map', {
+          center: latlong,
+          layers: L.mapquest.tileLayer('map'),
+          zoom: 15
+        });
+
+        var i = 0;
+        while(i++ < 10){
+          generateRandomMarker(latlong, 0.1, i).addTo(map);
+        }
+
+        map.addControl(L.mapquest.control());
+
+        map.addControl(L.mapquest.locatorControl());
+      }
+    </script>
+  </head>
+
+  <body style="border: 0; margin: 0;">
+    <div id="map" style="width: 100%; height: 100%;"></div>
+  </body>
+</html>
