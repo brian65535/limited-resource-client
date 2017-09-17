@@ -10,6 +10,22 @@
       .leaflet-popup-content {
         min-width: 200px;
       }
+      .leaflet-popup-content label {
+        width: 5em;
+        margin-right: 10px;
+        text-align: right;
+        display: inline-block;
+      }
+      .leaflet-popup-content input {
+        display: inline-block;
+        padding: .5em .6em;
+        display: inline-block;
+        border: 1px solid #ccc;
+        box-shadow: inset 0 1px 3px #ddd;
+        border-radius: 4px;
+        vertical-align: middle;
+        box-sizing: border-box;
+      }
       .leaflet-popup-content .name {
         font-weight: 700;
       }
@@ -188,10 +204,12 @@
                     }).join()
                   + '</select>';
         var content = ''
-                + '<input name="create_name"/>'
+                + '<div><label>Title</label><input name="create_name" placeholder="What\'s this?"/></div>'
+                + '<div><label>Type</label>'
                 + types 
-                + '<input name="create_description"/>'
-                + '<button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')"/>';
+                + '</div>'
+                + '<div><label>Content</label><input name="create_description" placeholder="... add description"/></div>'
+                + '<div><button type="submit" onclick="createPin(' + latlng.lat + ',' + latlng.lng + ')"/></div>';
         content = street + ', ' + city + ', ' + state + "<br>" + content;
 
         if(!PIN_CREATE){
